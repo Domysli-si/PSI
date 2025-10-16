@@ -1,0 +1,335 @@
+openapi: 3.1.0
+info:
+  title: Evidence spolku psu API
+  version: 1.0.0
+  description: REST API pro spravu evidencnich spolku chovatelu psu. Umoznuje prohledavat spolky, vytvaret zadosti o registraci a spravovat existujici zaznamy.
+  contact:
+    name: API Support
+    email: support@spolky-psu.cz
+
+servers:
+  - url: http://localhost:8000
+    description: Lokalni vyvojove prostredi
+  - url: https://api.spolky-psu.cz
+    description: Produkcni prostredi
+
+tags:
+  - name: Spolky
+    description: Sprava registrovanych spolku
+  - name: Zadosti
+    description: Sprava zadosti o registraci novych spolku
+
+components:
+  schemas:
+    Error:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+          example: Spolek nenalezen
+      description: Standardni chybova odpoved
+
+    SpolekBase:
+      type: object
+      required: [nazev, kontakt, adresa, plemeno]
+      properties:
+        nazev:
+          type: string
+          minLength: 3
+          maxLength: 200
+          example: Spolek jezevciku Praha
+          description: Nazev spolku
+        kontakt:
+          type: string
+          minLength: 5
+          maxLength: 100
+          example: info@jezevcici.cz
+          description: Kontaktni email nebo telefon
+        adresa:
+          type: string
+          minLength: 3
+          maxLength: 200
+          example: Praha 3, Zizkov
+          description: Adresa sidla spolku
+        plemeno:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Jezevcik
+          description: Hlavni plemeno, na ktere se spolek specializuje
+
+    SpolekCreate:
+      allOf:
+        - $ref: '#/components/schemas/SpolekBase'
+      description: Data pro vytvoreni nove zadosti o registraci spolku
+
+    Spolek:
+      allOf:
+        - $ref: '#/components/schemas/SpolekBase'
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              example: 1
+              description: Unikatni identifikator spolku
+      description: Kompletni informace o registrovanem spolku
+
+    SpolkyList:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Spolek'
+          description: Seznam spolku na aktualni strance
+        total:
+          type: integer
+          example: 42
+          description: Celkovy pocet spolku odpovidajicich kriteriim
+        page:
+          type: integer
+          example: 1
+          description: Aktualni stranka (1-based)
+        pageSize:
+          type: integer
+          example: 20
+          description: Pocet polozek na stranku
+
+paths:
+  /spolky/:
+    get:
+      tags: [Spolky]
+      summary: Seznam registrovanych spolku
+      description: Vraci seznam vsech registrovanych spolku s moznosti vyhledavani a strankovani
+      operationId: getSpolky
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+            minLength: 1
+          description: Fulltextove vyhledavani v nazvu spolku (case-insensitive)
+          example: jezevcik
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Cislo stranky (1-based indexovani)
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Pocet polozek na stranku
+      responses:
+        '200':
+          description: Seznam spolku uspesne nacten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpolkyList'
+        '500':
+          description: Interni chyba serveru
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /spolky/{spolek_id}:
+    parameters:
+      - in: path
+        name: spolek_id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: ID spolku
+        example: 1
+
+    get:
+      tags: [Spolky]
+      summary: Detail spolku
+      description: Vraci detailni informace o konkretnim spolku
+      operationId: getSpolek
+      responses:
+        '200':
+          description: Detail spolku uspesne nacten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Spolek'
+        '404':
+          description: Spolek s danym ID nebyl nalezen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Interni chyba serveru
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Spolky]
+      summary: Upravit spolek
+      description: Aktualizuje informace o existujicim spolku
+      operationId: updateSpolek
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpolekCreate'
+      responses:
+        '200':
+          description: Spolek uspesne aktualizovan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Spolek'
+        '400':
+          description: Validacni chyba
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Spolek s danym ID nebyl nalezen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Interni chyba serveru
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Spolky]
+      summary: Smazat spolek
+      description: Odstrani spolek z evidence
+      operationId: deleteSpolek
+      responses:
+        '204':
+          description: Spolek uspesne odstranen
+        '404':
+          description: Spolek s danym ID nebyl nalezen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Interni chyba serveru
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /requests/:
+    get:
+      tags: [Zadosti]
+      summary: Seznam zadosti o registraci
+      description: Vraci vsechny cekajici zadosti o registraci novych spolku
+      operationId: getRequests
+      responses:
+        '200':
+          description: Seznam zadosti uspesne nacten
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Spolek'
+        '500':
+          description: Interni chyba serveru
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Zadosti]
+      summary: Vytvorit zadost o registraci
+      description: Vytvori novou zadost o registraci spolku do evidence
+      operationId: createRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpolekCreate'
+      responses:
+        '201':
+          description: Zadost uspesne vytvorena
+          headers:
+            Location:
+              description: URL nove zadosti
+              schema:
+                type: string
+        '400':
+          description: Validacni chyba
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Konflikt - spolek s podobnym nazvem jiz existuje
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Interni chyba serveru
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /requests/{request_id}/approve:
+    parameters:
+      - in: path
+        name: request_id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: ID zadosti ke schvaleni
+        example: 3
+
+    post:
+      tags: [Zadosti]
+      summary: Schvalit zadost
+      description: Schvali zadost a prevede ji do evidence registrovanych spolku
+      operationId: approveRequest
+      responses:
+        '201':
+          description: Zadost schvalena a spolek zaregistrovan
+          headers:
+            Location:
+              description: URL noveho spolku
+              schema:
+                type: string
+        '404':
+          description: Zadost s danym ID nebyla nalezena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Interni chyba serveru
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
