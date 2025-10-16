@@ -1,0 +1,30 @@
+[
+    {
+        "nazev": "Spolek jezevčíků Praha",
+        "kontakt": "info@jezevcici.cz",
+        "adresa": "Praha 3",
+        "plemeno": "Jezevčík",
+        "id": 1
+    },
+    {
+        "nazev": "Klub labradorů Praha",
+        "kontakt": "kontakt@labrador.cz",
+        "adresa": "Brno",
+        "plemeno": "Labrador",
+        "id": 2
+    },
+    {
+        "nazev": "P",
+        "kontakt": "3",
+        "adresa": "34343",
+        "plemeno": "GOGO",
+        "id": 3
+    },
+    {
+        "nazev": "P",
+        "kontakt": "3",
+        "adresa": "34343",
+        "plemeno": "GOGO",
+        "id": 4
+    }
+]
